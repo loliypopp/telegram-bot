@@ -1,10 +1,12 @@
 from aiogram.types import Message
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from data.settings import base, cursor,delete_product_by_uuid, get_product_id_by_name, get_all_products, get_product_by_uuid, update_product_by_uuid, get_last_ten_products
+from data.settings import base, get_category_id_by_name, cursor, delete_product_by_uuid, get_product_id_by_name, get_all_products, get_product_by_uuid, update_product_by_uuid, get_last_ten_products, get_brand_id_by_name
 from aiogram import F
-from keyboards.builders import products_kb, start_kb
+from keyboards.builders import products_kb, start_kb, categories_kb, brands_kb
 from data.forms import AddProductForm, UpdateProductForm, DeleteProductForm, FindTables
+
+
 
 router = Router()
 
@@ -14,6 +16,8 @@ router = Router()
 async def add_product_script(message: Message, state: FSMContext):
     await state.set_state(AddProductForm.enter_name)
     await message.answer('Сценарий добавления продукта!\nВведи название продукта!')
+    
+
 # u
 @router.message(F.text.lower()=='обновить продукт')
 async def update_product_script(message: Message, state: FSMContext):
@@ -49,35 +53,73 @@ async def del_product_script(message: Message, state: FSMContext):
 async def process_product_name(message: Message, state: FSMContext):
    
     await state.update_data(enter_name=message.text)
+    await state.set_state(AddProductForm.enter_price)
+    await message.answer(
+        'Отлично!\nТеперь укажи цену на товар!:'
+    )
+
+
+@router.message(AddProductForm.enter_price)
+async def process_product_price(message: Message, state: FSMContext):
+    await state.update_data(enter_price=int(message.text))
     await state.set_state(AddProductForm.enter_category)
     await message.answer(
-        'Отлично!\nТеперь напиши категорию товаров:'
+        'Отлично!\nТеперь выберите категорию товаров!', reply_markup=categories_kb()
     )
+
 
 @router.message(AddProductForm.enter_category)
 async def process_product_category(message: Message, state: FSMContext):
     await state.update_data(enter_category=message.text)
-    await state.set_state(AddProductForm.enter_price)
+    await state.set_state(AddProductForm.enter_brand)
     await message.answer(
-        'Отлично!\nТеперь укажи цену на товар!'
+        'Отлично!\nТеперь выберите бренд товара!', reply_markup=brands_kb()
     )
-@router.message(AddProductForm.enter_price)
+
+@router.message(AddProductForm.enter_brand)
+async def process_product_category(message: Message, state: FSMContext):
+    await state.update_data(enter_brand=message.text)
+    await state.set_state(AddProductForm.enter_descr)
+    await message.answer(
+        'Отлично!\nТеперь напишите описание товара!', reply_markup=start_kb()
+    )
+
+@router.message(AddProductForm.enter_descr)
+async def process_product_category(message: Message, state: FSMContext):
+    await state.update_data(enter_descr=message.text)
+    await state.set_state(AddProductForm.enter_quantity)
+    await message.answer(
+        'Отлично!\nТеперь количество товара!'
+    )
+
+
+@router.message(AddProductForm.enter_quantity)
 async def process_commit(message: Message, state: FSMContext):
-
-
-    data = await state.update_data(enter_price=int(message.text))
+    data = await state.update_data(enter_quantity=int(message.text))
 
     name = data['enter_name'].capitalize()
-    category = data['enter_category'].capitalize()
     price = data['enter_price']
+    
+    category = data['enter_category'].capitalize()
+    brand = data['enter_brand'].capitalize()
+
+    category = get_category_id_by_name(name)
+    brand = get_brand_id_by_name(name)
+
+
+    
+    descr = data['enter_descr']
+    quantity = data['enter_quantity']
+    
+
 
     await state.clear()
-    value = (name, category, price)
-    query = 'INSERT INTO product(title, category, price) VALUES (%s, %s, %s);'
+    value = (name, price, category, brand, descr, quantity)
+    query = 'INSERT INTO products(product_name, price, category_id, brand_id, descr, stock_quantity) VALUES (%s, %s, %s, %s, %s, %s);'
 
     cursor.execute(query, value)
     base.commit()
-    await message.answer(f'Товар добавлен успешно!\nTitle: {name} - Category: {category} - Price: {price}')
+    await message.answer(f'Товар добавлен успешно!\nTitle: - {name},  Price: - {price}, Category: - {category}, Brand: - {brand},\nDescription: - {descr}, Quantity: - {quantity} ')
 
 
 
