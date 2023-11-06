@@ -40,3 +40,34 @@ def update_product_by_uuid(uuid, title, category, price):
         base.commit()
     except Exception as e:
         print('Ошибка при обновлении product:', str(e))
+
+
+
+def get_all_products():
+    global base, cursor
+    try:
+        cursor.execute('SELECT product.title, product.category, product.price FROM product;')
+        products = cursor.fetchall()
+        return products
+    except Exception as e:
+        print('Ошибка при получении всех продуктов:', str(e))
+
+
+def get_last_ten_products():
+    global base, cursor
+    try:
+        cursor.execute('SELECT product.title, product.category, product.price FROM product;')
+        products = cursor.fetchall()
+        return products[-10::]
+    except Exception as e:
+        print('Ошибка при получении последних десяти продуктов:', str(e))
+
+
+
+def delete_product_by_uuid(uuid):
+    global base, cursor
+    try:
+        cursor.execute("DELETE from product WHERE id=%s", (uuid, ))
+        base.commit()
+    except Exception as e:
+        print('Ошибка при удалении product:', str(e))

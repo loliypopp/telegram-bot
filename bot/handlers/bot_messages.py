@@ -1,30 +1,12 @@
-from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from data.settings import base, cursor, get_product_id_by_name, get_product_by_uuid, update_product_by_uuid
+from data.settings import base, cursor,delete_product_by_uuid, get_product_id_by_name, get_all_products, get_product_by_uuid, update_product_by_uuid, get_last_ten_products
 from aiogram import F
-
+from keyboards.builders import products_kb, start_kb
+from data.forms import AddProductForm, UpdateProductForm, DeleteProductForm, FindTables
 
 router = Router()
-
-
-class AddProductForm(StatesGroup):
-    enter_name = State()
-    enter_category = State()
-    enter_price = State()
-
-
-class UpdateProductForm(StatesGroup):
-    uuid = State()
-    edit_name = State()
-    edit_category = State()
-    edit_price = State()
-
-
-class FindTables(StatesGroup):
-    enter_product_name= State()
-
 
 ''' REQUEST STARTS '''
 # c
@@ -44,6 +26,21 @@ async def product_details_script(message: Message, state: FSMContext):
     await state.clear()
     await state.set_state(FindTables.enter_product_name)
     await message.answer('Введите название продукта, которого\nвы хотите посмотреть!')
+
+@router.message(F.text.lower()=='посмотреть продукты')
+async def show_products_script(message: Message):
+    await message.answer('Выбери что вы хотите вывести:', reply_markup=products_kb())
+
+@router.message(F.text.lower()=='назад')
+async def go_back_script(message: Message):
+     await message.answer(f"@{message.from_user.username} - вы вернулись назад,\n что хотите сделать?", reply_markup=start_kb())
+
+
+# d
+@router.message(F.text.lower()=='удалить продукт')
+async def del_product_script(message: Message, state: FSMContext):
+    await state.set_state(DeleteProductForm.delete_uuid)
+    await message.answer('Укажи название товара которого хотите удалить!')
 
 
 
@@ -70,8 +67,8 @@ async def process_commit(message: Message, state: FSMContext):
 
     data = await state.update_data(enter_price=int(message.text))
 
-    name = data['enter_name']
-    category = data['enter_category']
+    name = data['enter_name'].capitalize()
+    category = data['enter_category'].capitalize()
     price = data['enter_price']
 
     await state.clear()
@@ -96,6 +93,25 @@ async def show_product(message: Message, state: FSMContext):
     title, category, price = value[0]
 
     await message.answer(f'Вот данные о продукте\n\nНазвание: {title}\nКатегория:{category}\nЦена:{price}')
+
+@router.message(F.text.lower()=='все продукты')
+async def show_products_script(message: Message):
+    data = get_all_products()
+    count = 1
+    print(data)
+    for select in data:
+        await message.answer(f'{count}) Название: {select[0]} , Категория: {select[1]} , Цена: {select[2]};')
+        count+=1
+
+@router.message(F.text.lower()=='10 последних добавленных')
+async def show_last10_products_script(message: Message):
+    data = get_last_ten_products()
+    print(data)
+    count = 1
+    for select in data:
+        await message.answer(f'{count}) Название: {select[0]} , Категория: {select[1]} , Цена: {select[2]};')
+        count+=1
+
 
 
 ''' UPDATE PRODUCT '''
@@ -132,3 +148,15 @@ async def proccess_commit_update(message: Message, state: FSMContext):
     print(change)
     state.clear()
     await message.answer('Продукт успешно обновлен!')
+
+
+'''DELETE PRODUCT'''
+@router.message(DeleteProductForm.delete_uuid)
+async def delete_process(message: Message, state: FSMContext):
+    data = await state.update_data(delete_uuid=message.text)
+    uuid = data['delete_uuid'].capitalize()
+    uuid = get_product_id_by_name(uuid)
+
+    delete_product_by_uuid(uuid)
+    await message.answer('Продукт успешно был удален!')
+
