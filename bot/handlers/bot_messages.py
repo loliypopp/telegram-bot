@@ -49,7 +49,7 @@ async def show_products_script(message: Message):
 
 @router.message(F.text.lower()=='назад')
 async def go_back_script(message: Message):
-     await message.answer(f"@{message.from_user.username} - вы вернулись назад,\n что хотите сделать?", reply_markup=start_kb())
+     await message.answer(f"@{message.from_user.username} - вы вернулись назад,\n что хотите сделать?", reply_markup=main_kb())
 
 
 # d
@@ -144,7 +144,7 @@ async def process_commit(message: Message, state: FSMContext):
     cursor.execute(query, value)
     base.commit()
     await message.answer(f'Товар добавлен успешно!\nTitle: - {name},  Price: - {price}, Category: - {category}, Brand: - {brand},\nDescription: - {descr}, Quantity: - {quantity} ', 
-                         reply_markup=start_kb())
+                         reply_markup=main_kb())
 
 
 

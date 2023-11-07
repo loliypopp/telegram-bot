@@ -1,6 +1,4 @@
-from aiogram.filters import CommandStart,  Command, CommandObject
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message
+from aiogram.filters import CommandStart,  Command
 from keyboards import builders
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext

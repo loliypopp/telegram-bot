@@ -2,7 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from data.selects import get_all_categories, get_all_brands
 
-def start_kb():
+def main_kb():
     items = [
         'Обновить продукт', "Посмотреть продукты", 
         'Посмотреть продукт', 'Удалить продукт',
@@ -46,3 +46,9 @@ def brands_kb():
     builder = ReplyKeyboardBuilder()
     [builder.button(text=item) for item in items]
     return builder.as_markup(resize_keyboard=True)
+
+
+
+def start_kb():
+    items = ['Зарегистрироваться', 'Пропустить']
+    
