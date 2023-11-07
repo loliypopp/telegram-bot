@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from data.settings import get_all_categories, get_all_brands
+from data.selects import get_all_categories, get_all_brands
 
 def start_kb():
     items = [

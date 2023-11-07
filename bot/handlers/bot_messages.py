@@ -1,11 +1,12 @@
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from data.settings import base, get_category_id_by_name, cursor, delete_product_by_uuid, get_product_id_by_name, get_all_products, get_product_by_uuid, update_product_by_uuid, get_last_ten_products, get_brand_id_by_name
+from data.settings import base, cursor
 from aiogram import F
-from keyboards.builders import products_kb, start_kb, categories_kb, brands_kb
-from data.forms import AddProductForm, UpdateProductForm, DeleteProductForm, FindTables
-
+from keyboards.builders import *
+from data.forms import *
+from data.insertion import *
+from data.selects import *
 
 
 router = Router()
@@ -48,6 +49,10 @@ async def del_product_script(message: Message, state: FSMContext):
 
 
 
+
+
+
+
 ''' CREATION '''
 @router.message(AddProductForm.enter_name)
 async def process_product_name(message: Message, state: FSMContext):
@@ -81,7 +86,7 @@ async def process_product_category(message: Message, state: FSMContext):
     await state.update_data(enter_brand=message.text)
     await state.set_state(AddProductForm.enter_descr)
     await message.answer(
-        'Отлично!\nТеперь напишите описание товара!', reply_markup=start_kb()
+        'Отлично!\nТеперь напишите описание товара!', reply_markup=ReplyKeyboardRemove()
     )
 
 @router.message(AddProductForm.enter_descr)
@@ -103,8 +108,8 @@ async def process_commit(message: Message, state: FSMContext):
     category = data['enter_category'].capitalize()
     brand = data['enter_brand'].capitalize()
 
-    category = get_category_id_by_name(name)
-    brand = get_brand_id_by_name(name)
+    category = get_category_id_by_name(category)
+    brand = get_brand_id_by_name(brand)
 
 
     
@@ -119,7 +124,13 @@ async def process_commit(message: Message, state: FSMContext):
 
     cursor.execute(query, value)
     base.commit()
-    await message.answer(f'Товар добавлен успешно!\nTitle: - {name},  Price: - {price}, Category: - {category}, Brand: - {brand},\nDescription: - {descr}, Quantity: - {quantity} ')
+    await message.answer(f'Товар добавлен успешно!\nTitle: - {name},  Price: - {price}, Category: - {category}, Brand: - {brand},\nDescription: - {descr}, Quantity: - {quantity} ', 
+                         reply_markup=start_kb())
+
+
+
+
+
 
 
 
@@ -156,6 +167,10 @@ async def show_last10_products_script(message: Message):
 
 
 
+
+
+
+
 ''' UPDATE PRODUCT '''
 @router.message(UpdateProductForm.uuid)
 async def find_product_procces(message: Message, state: FSMContext):
@@ -163,17 +178,36 @@ async def find_product_procces(message: Message, state: FSMContext):
     await state.set_state(UpdateProductForm.edit_name)
     await message.answer('Укажи новый заголовок для товара!')
 
+
 @router.message(UpdateProductForm.edit_name)
 async def edit_name_proccess(message: Message, state: FSMContext):
     await state.update_data(edit_name=message.text)
+    await state.set_state(UpdateProductForm.edit_price)
+    await message.answer('Укажи новую цену товара!')
+
+
+@router.message(UpdateProductForm.edit_price)
+async def edit_category_proccess(message: Message, state: FSMContext):
+    await state.update_data(edit_price = message.text)
     await state.set_state(UpdateProductForm.edit_category)
-    await message.answer('Укажи новую категорию товара!')
+    await message.answer('Укажи новую категорию товара!', reply_markup=categories_kb())
+
 
 @router.message(UpdateProductForm.edit_category)
 async def edit_category_proccess(message: Message, state: FSMContext):
-    await state.update_data(edit_category = message.text)
-    await state.set_state(UpdateProductForm.edit_price)
-    await message.answer('Укажи новую цену товара!')
+    await state.update_data(edit_price = message.text)
+    await state.set_state(UpdateProductForm.edit_brand)
+    await message.answer('Укажи новый бренд товара!', reply_markup=brands_kb())
+
+
+
+@router.message(UpdateProductForm.edit_brand)
+async def edit_category_proccess(message: Message, state: FSMContext):
+    await state.update_data(edit_price = message.text)
+    await state.set_state(UpdateProductForm.edit_descr)
+    await message.answer('Укажи новую категорию товара!', reply_markup=categories_kb())
+
+
 
 
 @router.message(UpdateProductForm.edit_price)
