@@ -95,15 +95,58 @@ def get_all_brands():
     try:
         cursor.execute('SELECT brands.name FROM brands;')
         brands = cursor.fetchall()
+        if not brands:
+            base.commit()
+            return None
+        base.commit()
         return brands
     except Exception as e:
         print('Ошибка при получении всех брендов:', str(e))
+        base.commit()
+        return None
+
 
 def get_all_categories():
     global base, cursor
     try:
         cursor.execute('SELECT categories.category_name FROM categories;')
         categories = cursor.fetchall()
+        if not categories:
+            base.commit()
+            return None
+        base.commit()
         return categories
     except Exception as e:
         print('Ошибка при получении всех категорий:', str(e))
+        base.commit()
+        return None
+    
+
+def get_products_by_category(name):
+    global base, cursor
+    try:
+        cursor.execute('SELECT products.*, categories.category_name FROM products INNER JOIN categories ON products.category_id = categories.category_id WHERE categories.category_name = %s;', (name, ))
+        products = cursor.fetchall()
+        if not products:
+            base.commit()
+            return None
+        base.commit()
+        return products
+    except Exception as e:
+        print('Ошибка при получении товаров по категории:', str(e))
+        base.commit()
+
+
+def get_products_by_brands(name):
+    global base, cursor
+    try:
+        cursor.execute('SELECT products.*, brands.name as brand_name FROM products INNER JOIN brands ON products.brand_id = brands.brand_id WHERE brands.name = %s;', (name,))
+        products = cursor.fetchall()
+        if not products:
+            base.commit()
+            return None
+        base.commit()
+        return products
+    except Exception as e:
+        print('Ошибка при получении товаров по бренду:', str(e))
+        base.commit()

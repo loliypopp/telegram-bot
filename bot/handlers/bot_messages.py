@@ -32,15 +32,28 @@ async def add_product_script(message: Message, state: FSMContext):
 # u
 @router.message(F.text.lower()=='обновить продукт')
 async def update_product_script(message: Message, state: FSMContext):
+    await state.clear()
+    products = get_all_products()
+    count = 0
+
+    for select in products:
+        count+=1
+        await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}')
     await state.set_state(UpdateProductForm.uuid)
-    await message.answer('Сценари изменения продукта!\nВведите название продукта которого вы хотите изменить!')
+    await message.answer('Сценари изменения продукта!\nВведите UUID продукта которого вы хотите изменить!')
 
 # r
 @router.message(F.text.lower()=='посмотреть продукт')
 async def product_details_script(message: Message, state: FSMContext):
     await state.clear()
+    data = get_all_products()
+    count = 0
+
+    for select in data:
+        count+=1
+        await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]}')
     await state.set_state(FindTables.enter_product_name)
-    await message.answer('Введите название продукта, которого\nвы хотите посмотреть!')
+    await message.answer('Введите UUID продукта, которого\nвы хотите посмотреть!')
 
 
 @router.message(F.text.lower()=='посмотреть продукты')
@@ -62,7 +75,6 @@ async def del_product_script(message: Message, state: FSMContext):
         count+=1
         await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]} ')
   
-
     await state.set_state(DeleteProductForm.delete_uuid)
     await message.answer('Укажи UUID товара которого хотите удалить!')
 
@@ -157,14 +169,14 @@ async def process_commit(message: Message, state: FSMContext):
 @router.message(FindTables.enter_product_name)
 async def show_product(message: Message, state: FSMContext):
     data = await state.update_data(enter_product_name=message.text)
-    name =  data['enter_product_name'].capitalize()
+    name =  data['enter_product_name']
+    await state.clear()
+    value = get_product_by_uuid(name)
 
-    uuid = get_product_id_by_name(name)
-    value = get_product_by_uuid(uuid)
-    print(value)
     name, price, category, brand, descr, quantity  = value[0]
-
-    await message.answer(f'Title: - {name},  Price: - {price}, Category: - {category}, Brand: - {brand},\nDescription: - {descr}, Quantity: - {quantity}')
+    
+    await message.answer(f'PRODUCT DETAILS:\nTitle: - {name},\nPrice: - {price},\nCategory: - {category},\nBrand: - {brand},\nDescription: - {descr},\nQuantity: - {quantity}')
+    await message.answer('Что вы хотите сделать?', reply_markup=main_kb()) 
 
 
 @router.message(F.text.lower()=='все продукты')
@@ -175,7 +187,7 @@ async def show_products_script(message: Message):
     for select in data:
         count+=1
         await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
-        
+    await message.answer('Что вы хотите сделать?', reply_markup=main_kb())    
 
 
 @router.message(F.text.lower()=='10 последних добавленных')
@@ -186,9 +198,59 @@ async def show_last10_products_script(message: Message):
     for select in data:
         count+=1
         await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
-        
+    await message.answer('Что вы хотите сделать?', reply_markup=main_kb())  
+
+@router.message(F.text.lower()=='все продукты определ. категории')
+async def show_products_by_category(message: Message, state: FSMContext):
+    data = get_all_categories()
+    count = 0
+    for select in data:
+        count +=1
+        await message.answer(f'{count}.\nTitle: {select[0]}')
+    await state.set_state(FindTables.enter_category_name)
+    await message.answer('Введите название категории по которому вы хотите получить продукты!')
 
 
+
+@router.message(FindTables.enter_category_name)
+async def proccess_products_by_category(message: Message, state: FSMContext):
+    data = await state.update_data(name=message.text)
+    name = data['name']
+    
+    products = get_products_by_category(name)
+    count = 0
+    for select in products:
+        count+=1
+        await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
+    await message.answer('Что вы хотите сделать?', reply_markup=main_kb())  
+    await state.clear()
+
+
+
+@router.message(F.text.lower()=='все продукты определ. бренда')
+async def show_products_by_brand(message: Message, state: FSMContext):
+    await state.clear()
+    data = get_all_brands()
+    count = 0
+    for select in data:
+        count +=1
+        await message.answer(f'{count}.\nTitle: {select[0]}')
+    await state.set_state(FindTables.enter_brand_name)
+    await message.answer('Введите название бренда по которому вы хотите получить продукты!')
+
+
+
+@router.message(FindTables.enter_brand_name)
+async def proccess_products_by_brand(message: Message, state: FSMContext):
+    data = await state.update_data(name=message.text)
+    name = data['name']
+    products = get_products_by_brands(name)
+    count = 0
+    for select in products:
+        count+=1
+        await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
+    await message.answer('Что вы хотите сделать?', reply_markup=main_kb())  
+    await state.clear()
 
 
 
@@ -240,12 +302,8 @@ async def edit_category_proccess(message: Message, state: FSMContext):
 async def proccess_commit_update(message: Message, state: FSMContext):
     data = await state.update_data(edit_quantity = int(message.text))
 
-    
-
+    uuid = data['uuid']
     name = data['edit_name'].capitalize()
-    uuid = get_product_id_by_name(name)
-
-
     price = data['edit_price']
     
     category = data['edit_category'].capitalize()
@@ -261,8 +319,8 @@ async def proccess_commit_update(message: Message, state: FSMContext):
     
     await state.clear()
 
-    change = update_product_by_uuid(uuid, name, price, category, brand, descr, quantity)
-    await message.answer('Продукт успешно обновлен!')
+    update_product_by_uuid(uuid, name, price, category, brand, descr, quantity)
+    await message.answer('Продукт успешно обновлен!', reply_markup=main_kb())
 
 
 
@@ -273,7 +331,7 @@ async def proccess_commit_update(message: Message, state: FSMContext):
 async def delete_process(message: Message, state: FSMContext):
     data = await state.update_data(delete_uuid=message.text)
     uuid = data['delete_uuid']
-
+    await state.clear()
     delete_product_by_uuid(uuid)
     await message.answer('Продукт успешно был удален!')
 

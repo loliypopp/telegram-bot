@@ -25,5 +25,7 @@ class DeleteProductForm(StatesGroup):
 
 class FindTables(StatesGroup):
     enter_product_name= State()
+    enter_category_name = State()
+    enter_brand_name = State()
 
 

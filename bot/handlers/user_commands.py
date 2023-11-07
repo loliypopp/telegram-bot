@@ -14,7 +14,7 @@ router = Router()
 
 @router.message(CommandStart())
 async def start(message: Message):
-    await message.answer(f"Привет!, @{message.from_user.username}\nЭто Онлайн-магазин продуктов, что хотите сделать?", reply_markup=builders.start_kb())
+    await message.answer(f"Привет!, @{message.from_user.username}\nЭто Онлайн-магазин продуктов, что хотите сделать?", reply_markup=builders.main_kb())
 
 
 @router.message(StateFilter(None), Command(commands=["cancel"]))
