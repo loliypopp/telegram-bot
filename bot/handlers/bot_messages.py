@@ -195,35 +195,54 @@ async def edit_category_proccess(message: Message, state: FSMContext):
 
 @router.message(UpdateProductForm.edit_category)
 async def edit_category_proccess(message: Message, state: FSMContext):
-    await state.update_data(edit_price = message.text)
+    await state.update_data(edit_category = message.text)
     await state.set_state(UpdateProductForm.edit_brand)
     await message.answer('Укажи новый бренд товара!', reply_markup=brands_kb())
 
-
-
 @router.message(UpdateProductForm.edit_brand)
 async def edit_category_proccess(message: Message, state: FSMContext):
-    await state.update_data(edit_price = message.text)
+    await state.update_data(edit_brand = message.text)
     await state.set_state(UpdateProductForm.edit_descr)
-    await message.answer('Укажи новую категорию товара!', reply_markup=categories_kb())
+    await message.answer('Укажи новое описание товара!', reply_markup=ReplyKeyboardRemove())
 
 
+@router.message(UpdateProductForm.edit_descr)
+async def edit_category_proccess(message: Message, state: FSMContext):
+    await state.update_data(edit_descr = message.text)
+    await state.set_state(UpdateProductForm.edit_quantity)
+    await message.answer('Укажи новое количество товаров!')
 
 
-@router.message(UpdateProductForm.edit_price)
+@router.message(UpdateProductForm.edit_quantity)
 async def proccess_commit_update(message: Message, state: FSMContext):
-    data = await state.update_data(edit_price = int(message.text))
-      
-    uuid = data['uuid'].capitalize()
-    uuid = get_product_id_by_name(uuid)
+    data = await state.update_data(edit_quantity = int(message.text))
 
-    title,category,price = data['edit_name'], data['edit_category'], data['edit_price'] 
-
-    change = update_product_by_uuid(uuid, title, category, price)
     
-    print(change)
-    state.clear()
+
+    name = data['edit_name'].capitalize()
+    uuid = get_product_id_by_name(name)
+
+
+    price = data['edit_price']
+    
+    category = data['edit_category'].capitalize()
+    brand = data['edit_brand'].capitalize()
+
+    category = get_category_id_by_name(category)
+    brand = get_brand_id_by_name(brand)
+
+
+    
+    descr = data['edit_descr']
+    quantity = data['edit_quantity']
+    
+    await state.clear()
+
+    change = update_product_by_uuid(uuid, name, price, category, brand, descr, quantity)
     await message.answer('Продукт успешно обновлен!')
+
+
+
 
 
 '''DELETE PRODUCT'''

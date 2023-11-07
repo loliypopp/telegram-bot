@@ -19,9 +19,10 @@ class UpdateProductForm(StatesGroup):
     edit_quantity = State()  
 
 
+class DeleteProductForm(StatesGroup):
+    delete_uuid = State()
+
 class FindTables(StatesGroup):
     enter_product_name= State()
 
 
-class DeleteProductForm(StatesGroup):
-    delete_uuid = State()

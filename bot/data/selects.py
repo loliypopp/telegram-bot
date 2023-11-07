@@ -5,7 +5,7 @@ from .insertion import inser_into_brands, inser_into_category
 def get_product_id_by_name(product_name):
     global base, cursor
     try:
-        cursor.execute("SELECT id FROM product WHERE title = %s;", (product_name, ))
+        cursor.execute("SELECT uuid FROM products WHERE product_name = %s;", (product_name, ))
         product_id = cursor.fetchone()
         if product_id:
             return product_id[0]
