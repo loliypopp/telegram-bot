@@ -11,6 +11,7 @@ def update_product_by_uuid(uuid, name, price, category, brand, descr, quantity):
         print('Ошибка при обновлении product:', str(e))
 
 
+
 def delete_product_by_uuid(uuid):
     global base, cursor
     try:

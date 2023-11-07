@@ -18,17 +18,18 @@ def get_product_id_by_name(product_name):
 def get_product_by_uuid(uuid):
     global base, cursor
     try:
-        cursor.execute("SELECT product.title, product.category, product.price FROM product WHERE id = %s;", (uuid, ))
+        cursor.execute("SELECT products.product_name, products.price, products.category_id, products.brand_id, products.descr, products.stock_quantity  FROM products WHERE uuid = %s;", (uuid, ))
         product = cursor.fetchall()
         return product
     except Exception as e:
         print('Ошибка при получении product:', str(e))
 
 
+
 def get_all_products():
     global base, cursor
     try:
-        cursor.execute('SELECT product.title, product.category, product.price FROM product;')
+        cursor.execute('SELECT p.uuid, p.product_name, CAST(p.price AS INT) AS price, c.category_name AS category, b.name AS brand, p.descr, p.stock_quantity FROM products p JOIN categories c ON p.category_id = c.category_id JOIN brands b ON p.brand_id = b.brand_id;')
         products = cursor.fetchall()
         return products
     except Exception as e:
@@ -38,13 +39,14 @@ def get_all_products():
 def get_last_ten_products():
     global base, cursor
     try:
-        cursor.execute('SELECT product.title, product.category, product.price FROM product;')
+        cursor.execute('SELECT p.uuid, p.product_name, CAST(p.price AS INT) AS price, c.category_name AS category, b.name AS brand, p.descr, p.stock_quantity FROM products p JOIN categories c ON p.category_id = c.category_id JOIN brands b ON p.brand_id = b.brand_id;;')
         products = cursor.fetchall()
         return products[-10::]
     except Exception as e:
         print('Ошибка при получении последних десяти продуктов:', str(e))
 
-    
+
+
 def get_category_id_by_name(name):
     global base, cursor
     try:

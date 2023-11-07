@@ -22,6 +22,7 @@ class UpdateProductForm(StatesGroup):
 class DeleteProductForm(StatesGroup):
     delete_uuid = State()
 
+
 class FindTables(StatesGroup):
     enter_product_name= State()
 
