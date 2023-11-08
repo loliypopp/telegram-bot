@@ -9,7 +9,7 @@ from handlers import bot_messages, user_commands
 
 async def main():
     token = '6727496119:AAF5io_NA4HU6E79N7epHJaCOCm66n3hZxc'
-    bot = Bot(token, parse_mode="HTML")
+    bot = Bot(token)
     dp = Dispatcher()
     
     dp.include_routers(

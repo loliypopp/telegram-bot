@@ -4,17 +4,15 @@ from data.selects import get_all_categories, get_all_brands
 
 def main_kb():
     items = [
-        'Обновить продукт', "Посмотреть продукты", 
+        'Обновить продукт', "Посмотреть продукты",
         'Посмотреть продукт', 'Удалить продукт',
-        'Добавить продукт', 'Отмена'
+        'Добавить продукт', 'Личный кабинет', 'Отмена'
     ]
     builder = ReplyKeyboardBuilder()
     [builder.button(text=item) for item in items]
-    builder.adjust(2,2,2)
-    
+    builder.adjust(2, 2, 2)
 
     return builder.as_markup(resize_keyboard=True)
-
 
 def products_kb():
     items = [
@@ -49,6 +47,11 @@ def brands_kb():
 
 
 
-def start_kb():
-    items = ['Зарегистрироваться', 'Пропустить']
+def update_kb():
+    items = ['Обновить себя', 'Назад']
+    builder = ReplyKeyboardBuilder()
+    [builder.button(text=item) for item in items]
+    builder.adjust(2)
+    return builder.as_markup(resize_keyboard=True)
+
     

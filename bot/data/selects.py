@@ -150,3 +150,27 @@ def get_products_by_brands(name):
     except Exception as e:
         print('Ошибка при получении товаров по бренду:', str(e))
         base.commit()
+
+
+def get_user_info(chat_id):
+    cursor.execute("SELECT name, phone, email, address FROM clients WHERE client_chat_id = %s", (str(chat_id),))
+    user_info = cursor.fetchone()
+
+    base.commit()
+
+    return user_info
+
+
+def get_user(chat_id):
+    global base, cursor
+    try:
+        cursor.execute("SELECT client_chat_id FROM clients WHERE client_chat_id = %s;", (str(chat_id),))
+        existing_user = cursor.fetchone()
+        if existing_user:
+            return existing_user
+        else:
+            return False
+
+    except (Exception, sql.Error) as error:
+        print("Ошибка при проверке существования пользователя в базе данных:", error)
+        return False

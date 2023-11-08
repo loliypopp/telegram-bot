@@ -7,7 +7,7 @@ from keyboards.builders import *
 from data.forms import *
 from data.insertion import *
 from data.selects import *
-
+from aiogram.filters import CommandStart
 
 router = Router()
 
@@ -15,11 +15,25 @@ router = Router()
 
 
 # CLIENT 
+@router.message(CommandStart())
+async def add_user(message: Message, state: FSMContext):
+    chat_id = message.from_user.id
+    print(chat_id)
+    await message.answer(f"Привет!, @{message.from_user.username}\nЭто Онлайн-магазин продуктов, что хотите сделать?",
+                         reply_markup=main_kb())
+    if user_exists(str(chat_id)):
+        await message.answer("Вы уже зарегистрированы в системе.")
+    else:
+        await state.set_state(UserState.name)
+        await message.answer(f"Доувай регатся\nЕсли ты не хочешь то просто пиши пропустит\nВведи своё имя")
+        
 
 
 
-
-
+@router.message(F.text.lower() == 'пропустить')
+async def skip(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer('Вы решили не регатся попуск', reply_markup=main_kb())
 
 
 # c
@@ -81,8 +95,115 @@ async def del_product_script(message: Message, state: FSMContext):
 
 
 
+"""CLIENT"""
+@router.message(F.text =='Личный кабинет')
+async def personal_area(message: Message):
+    chat_id = message.from_user.id
+    user_info = get_user_info(chat_id)
+
+    if user_info:
+        user_name = user_info[0]
+        user_phone = user_info[1]
+        user_email = user_info[2]
+        user_address = user_info[3]
+
+        response_message = f"Имя: {user_name}\nТелефон: {user_phone}\nEmail: {user_email}\nАдрес: {user_address}"
+        await message.answer(response_message, reply_markup=update_kb())
+    else:
+        await message.answer("Пользователь не найден.")
 
 
+
+
+
+
+@router.message(F.text.lower()=='обновить себя')
+async def update_client_script(message: Message, state: FSMContext):
+    await state.set_state(UpdateUserState.name)
+    await message.answer('Введи новое свое название(СЛАВА СССР)')
+
+
+@router.message(UpdateUserState.name)
+async def update_client_name(message: Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    await state.set_state(UpdateUserState.phone)
+    await message.answer('Введи новый свой номер телефона(СЛАВА СССР)')
+
+
+
+@router.message(UpdateUserState.phone)
+async def update_client_phone(message: Message, state: FSMContext):
+    await state.update_data(phone=message.text)
+    await state.set_state(UpdateUserState.email)
+    await message.answer('Введи новый свой эмейл(СЛАВА СССР)')
+
+
+@router.message(UpdateUserState.email)
+async def update_client_email(message: Message, state: FSMContext):
+    await state.update_data(email=message.text)
+    await state.set_state(UpdateUserState.address)
+    await message.answer('Введи новый свой адрес(СЛАВА СССР)')
+
+@router.message(UpdateUserState.address)
+async def update_client_proccess(message: Message, state: FSMContext):
+    await state.update_data(chat_id = message.from_user.id)
+    data = await state.update_data(address = message.text)
+    
+    chat_id = data['chat_id']
+    name = data['name']
+    phone = data['phone']
+    email = data['email']
+    address = data['address']
+    
+    get_user(str(chat_id))
+    update_user(str(chat_id), name, phone, email, address)
+    await state.clear()
+    await message.answer('Ты успешно обновился!!!', reply_markup=main_kb())
+
+
+
+@router.message(UserState.name)
+async def process_user_name(message: Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    await state.set_state(UserState.phone)
+    await message.answer(
+        'теперь введи свой номер телефона'
+    )
+
+
+@router.message(UserState.phone)
+async def process_user_phone(message: Message, state: FSMContext):
+    await state.update_data(phone=message.text)
+    await state.set_state(UserState.email)
+    await message.answer(
+        'теперь введи свой email телефона')
+
+
+@router.message(UserState.email)
+async def process_user_email(message: Message, state: FSMContext):
+    await state.update_data(email=message.text)
+    await state.set_state(UserState.address)
+    await message.answer(
+        'теперь введи свой адресс ')
+
+
+@router.message(UserState.address)
+async def prcess_user_address(message: Message, state: FSMContext):
+    data = await state.update_data(address=message.text)
+    chat_id = message.chat.id
+    name = data['name']
+    phone = data['phone']
+    email = data['email']
+    address = data['address']
+    await state.clear()
+    insert_into_clien(str(chat_id),name, phone, email, address)
+    if insert_into_clien:
+        await message.answer('Успешно зарегался чел')
+
+@router.message(F.text == 'Пропустить')
+async def skip(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer('Вы решили не регатся попуск', reply_markup=main_kb())
 
 ''' CREATION '''
 @router.message(AddProductForm.enter_name)
@@ -200,6 +321,9 @@ async def show_last10_products_script(message: Message):
         await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
     await message.answer('Что вы хотите сделать?', reply_markup=main_kb())  
 
+
+
+
 @router.message(F.text.lower()=='все продукты определ. категории')
 async def show_products_by_category(message: Message, state: FSMContext):
     data = get_all_categories()
@@ -219,11 +343,15 @@ async def proccess_products_by_category(message: Message, state: FSMContext):
     
     products = get_products_by_category(name)
     count = 0
-    for select in products:
-        count+=1
-        await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
-    await message.answer('Что вы хотите сделать?', reply_markup=main_kb())  
     await state.clear()
+    if products is not None:
+        for select in products:
+            count+=1
+            await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
+    else:
+        await message.answer('По данному категорию товаров не существует.')
+    await message.answer('Что вы хотите сделать?', reply_markup=main_kb())  
+
 
 
 
@@ -232,6 +360,7 @@ async def show_products_by_brand(message: Message, state: FSMContext):
     await state.clear()
     data = get_all_brands()
     count = 0
+    
     for select in data:
         count +=1
         await message.answer(f'{count}.\nTitle: {select[0]}')
@@ -246,9 +375,12 @@ async def proccess_products_by_brand(message: Message, state: FSMContext):
     name = data['name']
     products = get_products_by_brands(name)
     count = 0
-    for select in products:
-        count+=1
-        await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
+    if products is not None:
+        for select in products:
+            count+=1
+            await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
+    else:
+        await message.answer('По данному бренду товаров не существует.')
     await message.answer('Что вы хотите сделать?', reply_markup=main_kb())  
     await state.clear()
 

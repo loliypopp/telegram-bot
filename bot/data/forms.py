@@ -29,3 +29,15 @@ class FindTables(StatesGroup):
     enter_brand_name = State()
 
 
+class UserState(StatesGroup):
+    name = State()
+    phone = State()
+    email = State()
+    address = State()
+
+
+class UpdateUserState(StatesGroup):
+    name = State()
+    phone = State()
+    email = State()
+    address = State()
