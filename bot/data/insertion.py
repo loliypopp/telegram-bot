@@ -33,6 +33,7 @@ def inser_into_category(name):
 
 
 
+
 def inser_into_brands(name):
     global base, cursor
     try:
@@ -41,6 +42,8 @@ def inser_into_brands(name):
 
     except Exception as e:
         print("Error inserting into category", str(e))
+
+
 
 
 

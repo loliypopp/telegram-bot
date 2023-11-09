@@ -5,7 +5,7 @@ from .insertion import inser_into_brands, inser_into_category
 def get_product_id_by_name(product_name):
     global base, cursor
     try:
-        cursor.execute("SELECT uuid FROM products WHERE product_name = %s;", (product_name, ))
+        cursor.callproc('get_product_id_by_name', (product_name,))
         product_id = cursor.fetchone()
         if product_id:
             return product_id[0]
@@ -18,7 +18,7 @@ def get_product_id_by_name(product_name):
 def get_product_by_uuid(uuid):
     global base, cursor
     try:
-        cursor.execute("SELECT products.product_name, products.price, products.category_id, products.brand_id, products.descr, products.stock_quantity  FROM products WHERE uuid = %s;", (uuid, ))
+        cursor.callproc('get_product_by_uuid', (uuid,))
         product = cursor.fetchall()
         return product
     except Exception as e:
@@ -29,7 +29,7 @@ def get_product_by_uuid(uuid):
 def get_all_products():
     global base, cursor
     try:
-        cursor.execute('SELECT p.uuid, p.product_name, CAST(p.price AS INT) AS price, c.category_name AS category, b.name AS brand, p.descr, p.stock_quantity FROM products p JOIN categories c ON p.category_id = c.category_id JOIN brands b ON p.brand_id = b.brand_id;')
+        cursor.callproc('get_all_products')
         products = cursor.fetchall()
         return products
     except Exception as e:
@@ -39,7 +39,7 @@ def get_all_products():
 def get_last_ten_products():
     global base, cursor
     try:
-        cursor.execute('SELECT p.uuid, p.product_name, CAST(p.price AS INT) AS price, c.category_name AS category, b.name AS brand, p.descr, p.stock_quantity FROM products p JOIN categories c ON p.category_id = c.category_id JOIN brands b ON p.brand_id = b.brand_id;;')
+        cursor.callproc('get_all_products')
         products = cursor.fetchall()
         return products[-10::]
     except Exception as e:
@@ -50,7 +50,7 @@ def get_last_ten_products():
 def get_category_id_by_name(name):
     global base, cursor
     try:
-        cursor.execute('SELECT category_id FROM categories WHERE category_name = %s', (name, ))
+        cursor.callproc('get_category_id_by_name', (name, ))
         category_id = cursor.fetchone()
         print(category_id)
         if category_id:
@@ -59,7 +59,7 @@ def get_category_id_by_name(name):
             # Если категория не найдена, вставляем её в базу данных
             inser_into_category(name)
             # После вставки, повторно выполняем SELECT, чтобы получить ID
-            cursor.execute('SELECT category_id FROM categories WHERE category_name = %s', (name, ))
+            cursor.callproc('get_category_id_by_name', (name, ))
             category_id = cursor.fetchone()
             if category_id:
                 return category_id[0]
@@ -73,14 +73,14 @@ def get_category_id_by_name(name):
 def get_brand_id_by_name(name):
     global base, cursor
     try:
-        cursor.execute('SELECT brand_id FROM brands WHERE name = %s', (name, ))
+        cursor.callproc('get_brand_id_by_name', (name, ))
         brand_id = cursor.fetchone()
         print(brand_id)
         if brand_id:
             return brand_id[0]
         else:
             inser_into_brands(name)
-            cursor.execute('SELECT brand_id FROM brands WHERE name = %s', (name, ))
+            cursor.callproc('get_brand_id_by_name', (name, ))
             brand_id = cursor.fetchone()
             if brand_id:
                 return brand_id[0]
@@ -93,7 +93,7 @@ def get_brand_id_by_name(name):
 def get_all_brands():
     global base, cursor
     try:
-        cursor.execute('SELECT brands.name FROM brands;')
+        cursor.callproc('get_all_brands')
         brands = cursor.fetchall()
         if not brands:
             base.commit()
@@ -109,7 +109,7 @@ def get_all_brands():
 def get_all_categories():
     global base, cursor
     try:
-        cursor.execute('SELECT categories.category_name FROM categories;')
+        cursor.callproc('get_all_categories')
         categories = cursor.fetchall()
         if not categories:
             base.commit()
@@ -121,11 +121,14 @@ def get_all_categories():
         base.commit()
         return None
     
+    
+
+
 
 def get_products_by_category(name):
     global base, cursor
     try:
-        cursor.execute('SELECT products.*, categories.category_name FROM products INNER JOIN categories ON products.category_id = categories.category_id WHERE categories.category_name = %s;', (name, ))
+        cursor.callproc('get_products_by_category', (name, ))
         products = cursor.fetchall()
         if not products:
             base.commit()
@@ -140,7 +143,7 @@ def get_products_by_category(name):
 def get_products_by_brands(name):
     global base, cursor
     try:
-        cursor.execute('SELECT products.*, brands.name as brand_name FROM products INNER JOIN brands ON products.brand_id = brands.brand_id WHERE brands.name = %s;', (name,))
+        cursor.callproc('get_products_by_brands', (name, ))
         products = cursor.fetchall()
         if not products:
             base.commit()
