@@ -6,11 +6,13 @@ def main_kb():
     items = [
         'Обновить продукт', "Посмотреть продукты",
         'Посмотреть продукт', 'Удалить продукт',
-        'Добавить продукт', 'Личный кабинет', 'Отмена'
+        'Добавить продукт', 'Личный кабинет',
+        'Корзина', 'Отмена',
+        'Добавить продукт в корзину'
     ]
     builder = ReplyKeyboardBuilder()
     [builder.button(text=item) for item in items]
-    builder.adjust(2, 2, 2)
+    builder.adjust(2, 2, 2,2)
 
     return builder.as_markup(resize_keyboard=True)
 
@@ -28,23 +30,39 @@ def products_kb():
 
 def categories_kb():
     categories = get_all_categories()
-    items = []
-    for select in categories:
-        items.append(select[0])
-    builder = ReplyKeyboardBuilder()
-    [builder.button(text=item) for item in items]
-    return builder.as_markup(resize_keyboard=True)
+    if categories is not None:
+        items = []
+        for select in categories:
+            items.append(select[0])
+        builder = ReplyKeyboardBuilder()
+        [builder.button(text=item) for item in items]
+        return builder.as_markup(resize_keyboard=True)
+    else:
+        return
+    
 
+    
 
 def brands_kb():
     brands = get_all_brands()
-    items = []
-    for select in brands:
-        items.append(select[0])
+    if brands is not None:
+        items = []
+        for select in brands:
+            items.append(select[0])
+        builder = ReplyKeyboardBuilder()
+        [builder.button(text=item) for item in items]
+        return builder.as_markup(resize_keyboard=True)
+    else:
+        return
+
+
+
+def order_kb():
+    items = ['Заказать', 'Назад']
     builder = ReplyKeyboardBuilder()
     [builder.button(text=item) for item in items]
+    builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
-
 
 
 def update_kb():

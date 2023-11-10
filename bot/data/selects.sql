@@ -211,4 +211,30 @@ RETURNS TABLE(client_chat_id VARCHAR) AS $$
 BEGIN
     RETURN QUERY SELECT client_chat_id FROM clients WHERE client_chat_id = chat_id;
 END;
+$$ LANGUAGE SQL;
+
+
+
+
+-- Создаем функцию для оформления заказа
+CREATE OR REPLACE FUNCTION last_order_sumit(p_client_id INT, p_cart_id INT)
+RETURNS VOID AS $$
+DECLARE
+    v_order_id INT;
+BEGIN
+    -- Создаем заказ
+    INSERT INTO orderss (client_id)
+    VALUES (p_client_id) RETURNING order_id INTO v_order_id;
+
+    -- Переносим продукты из корзины в заказ
+    INSERT INTO orders_products (order_id, product_id)
+    SELECT v_order_id, product_uuid
+    FROM cart_products
+    WHERE cart_id = p_cart_id;
+
+    -- Очищаем корзину
+    DELETE FROM cart_products
+    WHERE cart_id = p_cart_id;
+END;
 $$ LANGUAGE plpgsql;
+

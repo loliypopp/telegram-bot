@@ -43,7 +43,25 @@ def inser_into_brands(name):
     except Exception as e:
         print("Error inserting into category", str(e))
 
+def add_product_to_user_cart(cart_id, product_uuid):
+    try:
+        cursor.execute("INSERT INTO cart_products (cart_id, product_uuid, quantity) VALUES (%s, %s, 1);",
+                       (cart_id, product_uuid))
+        base.commit()
+    except Exception as e:
+        print('Ошибка при добавлении продукта в корзину пользователя:', str(e))
 
+def create_user_cart(user_id):
+    try:
+        cursor.execute("INSERT INTO cart DEFAULT VALUES RETURNING cart_id;")
+        cart_id = cursor.fetchone()[0]
+
+        cursor.execute("UPDATE clients SET cart_id = %s WHERE client_chat_id = %s;", (cart_id, str(user_id)))
+        base.commit()
+        return cart_id
+    except Exception as e:
+        print('Ошибка при создании корзины пользователя:', str(e))
+        return None
 
 
 
@@ -101,3 +119,35 @@ def update_user(chat_id, name, phone, email, address):
     except Exception as e:
         print('Ошибка при обновлении user:', str(e))
 
+
+
+def insert_into_order(client_id):
+    global base, cursor
+    try:
+        cursor.execute('INSERT INTO orderss (client_id) VALUES (%s);', (client_id, ))
+        base.commit()
+    except Exception as e:
+        print('Ошибка при создании нового ордера:', str(e))
+
+
+
+
+def cart_to_fart_transfer(cart_id):
+    global base, cursor
+    try:
+        cursor.execute('SELECT product_uuid FROM cart_products WHERE cart_id = %s;', (cart_id, ))
+        tupl = cursor.fetchone()
+        print(tupl)
+        # cursor.execute('INSERT INTO orders_products (order_id, product_id) SELECT order_id, product_id FROM cart_products WHERE cart_id = %s;', (cart_id, ))
+        base.commit()
+    except Exception as e:
+        print('Ошибка при переводе корзины в фарт:', str(e))
+
+
+def clear_cart(cart_id):
+    global base, cursor
+    try:
+        cursor.execute('DELETE FROM cart WHERE cart_id = %s;', (cart_id, ))
+        base.commit()
+    except Exception as e:
+        print('Ошибка при удалении всех товаров из корзины:', str(e))

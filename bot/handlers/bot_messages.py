@@ -94,6 +94,36 @@ async def del_product_script(message: Message, state: FSMContext):
 
 
 
+# cart
+@router.message(F.text.lower() == 'корзина')
+async def order_order_scripts(message: Message, ):
+    await message.answer('Вот ваши продукты', reply_markup=order_kb())
+    products = get_products_in_cart()
+    count = 0
+    if products is not None:
+        for select in products:
+            count+=1
+            await message.answer(f"{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}")
+        await message.answer('Хотите заказать?')
+    else:
+
+        await message.answer('Корзина пустая, как и твой кошелек', reply_markup=main_kb())
+
+
+@router.message(F.text.lower() == 'заказать')
+async def order_order_start(message:Message, state: FSMContext):
+    if user_exists(str(message.from_user.id)):
+        chat_id = str(message.from_user.id)
+        client_id = get_client_id_by_chat_id(chat_id)
+
+        insert_into_order(client_id)
+        cart_id = get_user_cart_id(chat_id)
+        cart_to_fart_transfer(cart_id)
+        clear_cart(cart_id)
+
+        await message.answer("Заказ создан", reply_markup=main_kb())
+
+
 
 """CLIENT"""
 @router.message(F.text =='Личный кабинет')
@@ -200,12 +230,49 @@ async def prcess_user_address(message: Message, state: FSMContext):
     if insert_into_clien:
         await message.answer('Успешно зарегался чел')
 
-@router.message(F.text == 'Пропустить')
+@router.message(F.text.lower() == 'пропустить')
 async def skip(message: Message, state: FSMContext):
     await state.clear()
     await message.answer('Вы решили не регатся попуск', reply_markup=main_kb())
 
+
 ''' CREATION '''
+@router.message(F.text.lower() == 'добавить продукт в корзину')
+async def add_product_to_cart_script(message:Message):
+    data = get_all_products()
+    count = 0
+
+    for select in data:
+        count+=1
+        await message.answer(f'{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}.')
+    await message.answer('Если хотите добавить продукт в корзину\nНапишите:"Добавить {Название продукта}"')
+
+
+@router.message(F.text.startswith('добавить'))
+async def add_product_to_cart(message: Message, state: FSMContext):
+    product_name = message.text[8:].strip().capitalize()
+
+    product = get_product_by_name(product_name)
+
+    if product:
+
+        user_id = message.from_user.id
+        cart_id = get_user_cart_id(user_id)
+
+        if not cart_id:
+            create_user_cart(user_id)
+
+            cart_id = get_user_cart_id(user_id)
+
+        add_product_to_user_cart(cart_id, product['uuid'])
+
+        await message.answer(f'Продукт "{product_name}" добавлен в вашу корзину.')
+    else:
+        await message.answer(f'Продукт "{product_name}" не найден.')
+
+
+
+
 @router.message(AddProductForm.enter_name)
 async def process_product_name(message: Message, state: FSMContext):
    
@@ -256,30 +323,37 @@ async def process_commit(message: Message, state: FSMContext):
 
     name = data['enter_name'].capitalize()
     price = data['enter_price']
-    
-    category = data['enter_category'].capitalize()
-    brand = data['enter_brand'].capitalize()
 
-    category = get_category_id_by_name(category)
-    brand = get_brand_id_by_name(brand)
+    category_name = data['enter_category'].capitalize()
+    brand_name = data['enter_brand'].capitalize()
 
+    try:
+        category_id = get_category_id_by_name(category_name)
+        brand_id = get_brand_id_by_name(brand_name)
+        if category_id is None:
+            inser_into_category(category_name)
+            category_id = get_category_id_by_name(category_name)
+        if brand_id is None:
+            inser_into_brands(brand_name)
+            brand_id = get_brand_id_by_name(brand_name)
+        descr = data['enter_descr']
+        quantity = data['enter_quantity']
 
-    
-    descr = data['enter_descr']
-    quantity = data['enter_quantity']
-    
+        await state.clear()
+        value = (name, price, category_id, brand_id, descr, quantity)
+        query = 'INSERT INTO products(product_name, price, category_id, brand_id, descr, stock_quantity) VALUES (%s, %s, %s, %s, %s, %s);'
 
+        cursor.execute(query, value)
+        base.commit()
+        await message.answer(
+            f'Товар добавлен успешно!\nTitle: - {name},  Price: - {price}, Category: - {category_name}, Brand: - {brand_name},\nDescription: - {descr}, Quantity: - {quantity} ',
+            reply_markup=main_kb())
 
-    await state.clear()
-    value = (name, price, category, brand, descr, quantity)
-    query = 'INSERT INTO products(product_name, price, category_id, brand_id, descr, stock_quantity) VALUES (%s, %s, %s, %s, %s, %s);'
+    except Exception as e:
 
-    cursor.execute(query, value)
-    base.commit()
-    await message.answer(f'Товар добавлен успешно!\nTitle: - {name},  Price: - {price}, Category: - {category}, Brand: - {brand},\nDescription: - {descr}, Quantity: - {quantity} ', 
-                         reply_markup=main_kb())
-
-
+        base.rollback()
+        print(f"Ошибка при добавлении продукта: {str(e)}")
+        await message.answer("Произошла ошибка при добавлении продукта. Пожалуйста, попробуйте еще раз.")
 
 
 
@@ -328,11 +402,16 @@ async def show_last10_products_script(message: Message):
 async def show_products_by_category(message: Message, state: FSMContext):
     data = get_all_categories()
     count = 0
-    for select in data:
-        count +=1
-        await message.answer(f'{count}.\nTitle: {select[0]}')
-    await state.set_state(FindTables.enter_category_name)
-    await message.answer('Введите название категории по которому вы хотите получить продукты!')
+    if data is not None:
+        for select in data:
+            count +=1
+            await message.answer(f'{count}.\nTitle: {select[0]}')
+        await state.set_state(FindTables.enter_category_name)
+        await message.answer('Введите название категории по которому вы хотите получить продукты!')
+    else:
+        await message.answer('Нет категорий')
+        await state.clear()
+    
 
 
 

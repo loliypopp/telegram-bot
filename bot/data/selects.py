@@ -53,7 +53,7 @@ def get_category_id_by_name(name):
         cursor.callproc('get_category_id_by_name', (name, ))
         category_id = cursor.fetchone()
         print(category_id)
-        if category_id:
+        if category_id is not None:
             return category_id[0]
         else:
             # Если категория не найдена, вставляем её в базу данных
@@ -61,6 +61,7 @@ def get_category_id_by_name(name):
             # После вставки, повторно выполняем SELECT, чтобы получить ID
             cursor.callproc('get_category_id_by_name', (name, ))
             category_id = cursor.fetchone()
+            base.commit()
             if category_id:
                 return category_id[0]
             else:
@@ -68,6 +69,39 @@ def get_category_id_by_name(name):
     except Exception as e:
         print('Ошибка при получении ID категории по имени:', str(e))
 
+
+
+def get_product_by_name(product_name):
+    try:
+        cursor.execute("SELECT * FROM products WHERE product_name = %s;", (product_name,))
+        product = cursor.fetchone()
+        if product:
+            return {
+                'uuid': product[0],
+                'name': product[1],
+                'price': product[2],
+                'category_id': product[3],
+                'brand_id': product[4],
+                'descr': product[5],
+                'stock_quantity': product[6]
+            }
+        else:
+            return None
+    except Exception as e:
+        print('Ошибка при получении информации о продукте:', str(e))
+        return None
+
+def get_user_cart_id(user_id):
+    try:
+        cursor.execute("SELECT cart_id FROM clients WHERE client_chat_id = %s;", (str(user_id),))
+        cart_id = cursor.fetchone()
+        if cart_id:
+            return cart_id[0]
+        else:
+            return None
+    except Exception as e:
+        print('Ошибка при получении идентификатора корзины пользователя:', str(e))
+        return None
 
 
 def get_brand_id_by_name(name):
@@ -177,3 +211,43 @@ def get_user(chat_id):
     except (Exception, sql.Error) as error:
         print("Ошибка при проверке существования пользователя в базе данных:", error)
         return False
+    
+
+
+
+def get_products_in_cart():
+    global base, cursor
+    try:
+        cursor.execute("SELECT products.* FROM products JOIN cart_products ON products.uuid = cart_products.product_uuid;")
+        products = cursor.fetchall()
+        base.commit()
+        if products:
+            return products
+        else:
+            return False
+    except Exception as e:
+        print('Ошибка при получении продуктов из корзины:', str(e))
+        base.commit()
+
+
+
+
+def last_order_submit(client_id, cart_id):
+    global base, cursor
+    try:
+        cursor.callproc('last_order_sumit', (client_id, cart_id))
+    except Exception as e:
+        print('Ошибка при выполнении процедуры сбора товаров по брендам: ', str(e))
+
+
+
+def get_client_id_by_chat_id(chat_id):
+    global base, cursor
+    try:
+        cursor.execute("SELECT client_id FROM clients WHERE client_chat_id = %s;",(str(chat_id), ))
+        client_id = cursor.fetchone()[0]
+        base.commit()
+        return client_id
+    except Exception as e:
+        print('Ошибка при получении id клиента: ', str(e))
+        base.commit()
