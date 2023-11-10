@@ -124,21 +124,30 @@ def update_user(chat_id, name, phone, email, address):
 def insert_into_order(client_id):
     global base, cursor
     try:
-        cursor.execute('INSERT INTO orderss (client_id) VALUES (%s);', (client_id, ))
+        cursor.execute('INSERT INTO orderss (client_id) VALUES (%s) RETURNING order_id;', (client_id, ))
+        last_order_id = cursor.fetchone()[0]
         base.commit()
+        return last_order_id
     except Exception as e:
         print('Ошибка при создании нового ордера:', str(e))
 
 
 
 
-def cart_to_fart_transfer(cart_id):
+def cart_to_fart_transfer(cart_id, last_order_id):
     global base, cursor
     try:
+        # Получение данных из cart_products
         cursor.execute('SELECT product_uuid FROM cart_products WHERE cart_id = %s;', (cart_id, ))
-        tupl = cursor.fetchone()
+        tupl = cursor.fetchall()
+        tupl = tuple(zip(*tupl))
+        tupl = tupl[0]
         print(tupl)
-        # cursor.execute('INSERT INTO orders_products (order_id, product_id) SELECT order_id, product_id FROM cart_products WHERE cart_id = %s;', (cart_id, ))
+        # Вставка в таблицу orders_products
+        insert_query = 'INSERT INTO orders_product (order_id, product_id) VALUES (%s, %s);'
+        for product_uuid in tupl:
+            cursor.execute(insert_query, (last_order_id, product_uuid))
+
         base.commit()
     except Exception as e:
         print('Ошибка при переводе корзины в фарт:', str(e))
@@ -147,7 +156,7 @@ def cart_to_fart_transfer(cart_id):
 def clear_cart(cart_id):
     global base, cursor
     try:
-        cursor.execute('DELETE FROM cart WHERE cart_id = %s;', (cart_id, ))
+        cursor.execute('DELETE FROM cart_products WHERE cart_id = %s;', (cart_id, ))
         base.commit()
     except Exception as e:
         print('Ошибка при удалении всех товаров из корзины:', str(e))

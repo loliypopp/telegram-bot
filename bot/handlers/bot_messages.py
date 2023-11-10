@@ -56,6 +56,7 @@ async def update_product_script(message: Message, state: FSMContext):
     await state.set_state(UpdateProductForm.uuid)
     await message.answer('Сценари изменения продукта!\nВведите UUID продукта которого вы хотите изменить!')
 
+
 # r
 @router.message(F.text.lower()=='посмотреть продукт')
 async def product_details_script(message: Message, state: FSMContext):
@@ -71,11 +72,13 @@ async def product_details_script(message: Message, state: FSMContext):
 
 
 @router.message(F.text.lower()=='посмотреть продукты')
-async def show_products_script(message: Message):
+async def show_products_script(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer('Выбери что вы хотите вывести:', reply_markup=products_kb())
 
 @router.message(F.text.lower()=='назад')
-async def go_back_script(message: Message):
+async def go_back_script(message: Message, state: FSMContext):
+     await state.clear()
      await message.answer(f"@{message.from_user.username} - вы вернулись назад,\n что хотите сделать?", reply_markup=main_kb())
 
 
@@ -93,21 +96,38 @@ async def del_product_script(message: Message, state: FSMContext):
     await message.answer('Укажи UUID товара которого хотите удалить!')
 
 
+# orders
+@router.message(F.text.lower() == 'статистика заказов')
+async def order_statistics(message:Message):
+    products = get_products_in_orders()
+    count = 0
+    if  products is not None:
+        await message.answer('Вот ваши заказы', reply_markup=order_kb())
+        for select in products:
+            count+=1
+            await message.answer(f"{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}", reply_markup=main_kb())
+    else:
+
+        await message.answer('Заказов нет', reply_markup=main_kb())
+
+
+
 
 # cart
 @router.message(F.text.lower() == 'корзина')
 async def order_order_scripts(message: Message, ):
-    await message.answer('Вот ваши продукты', reply_markup=order_kb())
+    
     products = get_products_in_cart()
     count = 0
-    if products is not None:
+    if  products is not None:
+        await message.answer('Вот ваши продукты', reply_markup=order_kb())
         for select in products:
             count+=1
             await message.answer(f"{count}.\nUUID: - {select[0]}\nTitle: - {select[1]},\nPrice: - {select[2]},\nCategory: - {select[3]},\nBrand: - {select[4]},\nDescription: - {select[5]},\nQuantity: - {select[6]}")
         await message.answer('Хотите заказать?')
     else:
 
-        await message.answer('Корзина пустая, как и твой кошелек', reply_markup=main_kb())
+        await message.answer('Корзина пустая', reply_markup=main_kb())
 
 
 @router.message(F.text.lower() == 'заказать')
@@ -116,12 +136,71 @@ async def order_order_start(message:Message, state: FSMContext):
         chat_id = str(message.from_user.id)
         client_id = get_client_id_by_chat_id(chat_id)
 
-        insert_into_order(client_id)
+        order_id = insert_into_order(client_id)
         cart_id = get_user_cart_id(chat_id)
-        cart_to_fart_transfer(cart_id)
+        cart_to_fart_transfer(cart_id, order_id)
         clear_cart(cart_id)
 
         await message.answer("Заказ создан", reply_markup=main_kb())
+    else:
+        await state.set_state(UserCartState.name)
+        await message.answer('Вы не регестрированы\nВведите имя')
+
+
+@router.message(UserCartState.name)
+async def process_user_name(message: Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    await state.set_state(UserCartState.phone)
+    await message.answer(
+        'теперь введи свой номер телефона'
+    )
+
+
+@router.message(UserCartState.phone)
+async def process_user_phone(message: Message, state: FSMContext):
+    await state.update_data(phone=message.text)
+    await state.set_state(UserCartState.email)
+    await message.answer(
+        'теперь введи свой email телефона')
+
+
+@router.message(UserCartState.email)
+async def process_user_email(message: Message, state: FSMContext):
+    await state.update_data(email=message.text)
+    await state.set_state(UserCartState.address)
+    await message.answer(
+        'теперь введи свой адресс ')
+
+
+@router.message(UserCartState.address)
+async def prcess_user_address(message: Message, state: FSMContext):
+    data = await state.update_data(address=message.text)
+    chat_id = message.chat.id
+    name = data['name']
+    phone = data['phone']
+    email = data['email']
+    address = data['address']
+    await state.clear()
+    insert_into_clien(str(chat_id),name, phone, email, address)
+    if insert_into_clien:
+        await message.answer('Успешно зарегался чел')
+        if user_exists(str(message.from_user.id)):
+            chat_id = str(message.from_user.id)
+            client_id = get_client_id_by_chat_id(chat_id)
+
+            order_id = insert_into_order(client_id)
+            cart_id = get_user_cart_id(chat_id)
+            cart_to_fart_transfer(cart_id, order_id)
+            clear_cart(cart_id)
+
+            await message.answer("Заказ создан", reply_markup=main_kb())
+    else:
+        await message.answer('Ошибка при регистрации')
+
+
+
+
+
 
 
 
@@ -375,7 +454,8 @@ async def show_product(message: Message, state: FSMContext):
 
 
 @router.message(F.text.lower()=='все продукты')
-async def show_products_script(message: Message):
+async def show_products_script(message: Message, state: FSMContext):
+    await state.clear()
     data = get_all_products()
     count = 0
 
@@ -386,7 +466,8 @@ async def show_products_script(message: Message):
 
 
 @router.message(F.text.lower()=='10 последних добавленных')
-async def show_last10_products_script(message: Message):
+async def show_last10_products_script(message: Message, state: FSMContext):
+    await state.clear()
     data = get_last_ten_products()
     print(data)
     count = 0

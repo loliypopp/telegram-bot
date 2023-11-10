@@ -42,4 +42,8 @@ class UpdateUserState(StatesGroup):
     email = State()
     address = State()
 
-    
+class UserCartState(StatesGroup):
+    name = State()
+    phone = State()
+    email = State()
+    address = State()

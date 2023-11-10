@@ -224,20 +224,27 @@ def get_products_in_cart():
         if products:
             return products
         else:
-            return False
+            return None
     except Exception as e:
         print('Ошибка при получении продуктов из корзины:', str(e))
         base.commit()
 
 
-
-
-def last_order_submit(client_id, cart_id):
+def get_products_in_orders():
     global base, cursor
     try:
-        cursor.callproc('last_order_sumit', (client_id, cart_id))
+        cursor.execute('SELECT products.* FROM products JOIN orders_product ON products.uuid = orders_product.product_id;')
+        products = cursor.fetchall()
+        base.commit()
+        if products:
+            return products
+        else:
+            return None
     except Exception as e:
-        print('Ошибка при выполнении процедуры сбора товаров по брендам: ', str(e))
+        print('Ошибка при получении продуктов из заказов:', str(e))
+        base.commit()
+
+
 
 
 
